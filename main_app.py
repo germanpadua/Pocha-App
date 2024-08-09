@@ -18,31 +18,23 @@ def pasar_ronda():
         st.session_state.puntuaciones[st.session_state.ronda_actual][jugador] = st.session_state.acumuladas[jugador]
     
     st.session_state.ronda_actual += 1
-    
-    # No se llama aquí a actualizar_tabla()
 
 # Función para actualizar y mostrar la tabla de puntuaciones
 def actualizar_tabla():
-    # Crear DataFrame con las puntuaciones acumuladas
-    df_puntuaciones = pd.DataFrame(st.session_state.puntuaciones, columns=jugadores)
-    df_puntuaciones.index = [f"Ronda {i+1}" for i in range(10)]  # Añadir el índice de ronda
-    
-    # Crear columna para Apostadas / Conseguidas
+    # Crear DataFrame con las puntuaciones combinadas
+    df_puntuaciones = pd.DataFrame()
+
     for jugador in range(num_jugadores):
-        apostadas_conseguidas = ["-"] * 10  # Inicializar con "-" para todas las rondas
-        for ronda in range(st.session_state.ronda_actual):
-            apostadas_conseguidas[ronda] = f"{st.session_state.apuestas[ronda][jugador]} / {st.session_state.conseguidas[ronda][jugador]}"
+        combinadas = [f"{st.session_state.apuestas[ronda][jugador]} / {st.session_state.conseguidas[ronda][jugador]} / {st.session_state.puntuaciones[ronda][jugador]}" if ronda < st.session_state.ronda_actual else "- / - / -" for ronda in range(10)]
         
-        # Añadir las columnas al DataFrame
-        df_puntuaciones.insert(
-            2 * jugador,  # Insertar antes de la columna del jugador correspondiente
-            f"{jugadores[jugador]} Apostadas / Conseguidas",
-            apostadas_conseguidas
-        )
+        # Añadir la columna combinada al DataFrame
+        df_puntuaciones[f"{jugadores[jugador]} Ap / Co / Pts"] = combinadas
+    
+    df_puntuaciones.index = [f"Ronda {i+1}" for i in range(10)]  # Añadir el índice de ronda
     
     st.write("### Tabla de Puntuaciones Acumuladas por Ronda")
     st.dataframe(df_puntuaciones)
-    
+
     # Mostrar la puntuación total final
     st.write("### Puntuaciones Totales Finales")
     st.dataframe(pd.DataFrame([st.session_state.acumuladas], columns=jugadores))
