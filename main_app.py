@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 # Función para calcular el número de rondas
 def calcular_rondas(num_cartas, num_jugadores):
     rondas_por_jugador = num_cartas // num_jugadores
-    st.write(f"Rondas por jugador: {rondas_por_jugador}")
+    
     rondas_totales = 2 * (rondas_por_jugador - 1)  # Sumamos +1 para la ronda con el máximo número de cartas
     rondas_totales += 2 * num_jugadores
     return rondas_totales, rondas_por_jugador
