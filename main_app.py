@@ -71,8 +71,36 @@ def actualizar_tabla(num_rondas, nombres_rondas):
     else:
         st.error("Error: El número de rondas no coincide con los nombres de las rondas.")
     
+    # Convertir DataFrame a HTML con estilos CSS personalizados
+    table_html = df_puntuaciones.to_html(classes='mystyle', escape=False)
     st.write("### Tabla de Puntuaciones Acumuladas por Ronda")
-    st.dataframe(df_puntuaciones)
+    st.markdown(
+        f"""
+        <style>
+        .mystyle table {{
+            border-collapse: collapse;
+            width: 100%;
+        }}
+        .mystyle th {{
+            padding: 8px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+            font-size: 0.9em;
+        }}
+        .mystyle td {{
+            padding: 8px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+            font-size: 0.9em;
+        }}
+        .mystyle th:first-child, .mystyle td:first-child {{
+            width: 10%;
+            text-align: left;
+        }}
+        </style>
+        {table_html}
+        """, unsafe_allow_html=True
+    )
 
     # Mostrar la puntuación total final
     st.write("### Puntuaciones Totales Finales")
