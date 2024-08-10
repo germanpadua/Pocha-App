@@ -119,8 +119,6 @@ st.write(f"Se jugarán {num_rondas} rondas en total.")
 
 nombres_rondas = generar_nombres_rondas(num_jugadores, rondas_por_jugador)
 
-st.write(nombres_rondas)
-
 # Inicializar el estado de la aplicación
 if 'ronda_actual' not in st.session_state:
     st.session_state.ronda_actual = 0  # Comienza en la ronda 0
