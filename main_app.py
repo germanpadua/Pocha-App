@@ -18,21 +18,21 @@ def generar_nombres_rondas(num_jugadores, rondas_por_jugador):
     
     # Fase ascendente
     for i in range(1, rondas_por_jugador): 
-        nombres_rondas.append(f"{contador_rondas}. Ronda con {i} cartas")
+        nombres_rondas.append(f"{contador_rondas}. {i} cartas")
         contador_rondas += 1
         
     # Fase con el número máximo de cartas
     for i in range(num_jugadores):
-        nombres_rondas.append(f"{contador_rondas}. Ronda con {rondas_por_jugador} cartas")
+        nombres_rondas.append(f"{contador_rondas}. {rondas_por_jugador} cartas")
         contador_rondas += 1
     
     # Fase descendente
     for i in range(rondas_por_jugador - 1, 0, -1):
-        nombres_rondas.append(f"{contador_rondas}. Ronda con {i} cartas")
+        nombres_rondas.append(f"{contador_rondas}. {i} cartas")
         contador_rondas += 1
     
     for i in range(num_jugadores):
-        nombres_rondas.append(f"{contador_rondas}. Ronda con {rondas_por_jugador} cartas")
+        nombres_rondas.append(f"{contador_rondas}. {rondas_por_jugador} cartas")
         contador_rondas += 1
     
     return nombres_rondas
