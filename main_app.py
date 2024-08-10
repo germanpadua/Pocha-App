@@ -6,9 +6,7 @@ import plotly.graph_objects as go
 # Función para calcular el número de rondas
 def calcular_rondas(num_cartas, num_jugadores):
     rondas_por_jugador = num_cartas // num_jugadores
-    
-    rondas_totales = 2 * (rondas_por_jugador - 1)  # Sumamos +1 para la ronda con el máximo número de cartas
-    rondas_totales += 2 * num_jugadores
+    rondas_totales = 2 * (rondas_por_jugador - 1) + 2 * num_jugadores
     return rondas_totales, rondas_por_jugador
 
 # Función para generar los nombres de las rondas
@@ -38,21 +36,52 @@ def generar_nombres_rondas(num_jugadores, rondas_por_jugador):
     return nombres_rondas
 
 # Función para pasar de ronda y actualizar puntuaciones
-def pasar_ronda(): 
+def pasar_ronda(warning_container):
+    ronda_actual = st.session_state.ronda_actual
+    num_cartas_ronda = int(nombres_rondas[ronda_actual].split()[1])  # Obtener el número de cartas de la ronda actual
+    
+    total_apostadas = sum(st.session_state.apuestas[ronda_actual])
+    total_conseguidas = sum(st.session_state.conseguidas[ronda_actual])
+    warning_container.empty()
+    
+    if total_apostadas == num_cartas_ronda:
+        warning_container.warning("El número total de manos apostadas no puede coincidir con el número de cartas en mano.")
+        return
+    
+    if total_conseguidas != num_cartas_ronda:
+        warning_container.warning("El número total de manos conseguidas debe coincidir con el número de cartas en mano.")
+        return
+    
+    # Si todo es válido, actualizar las puntuaciones
     for jugador in range(num_jugadores):
-        apostadas = st.session_state.apuestas[st.session_state.ronda_actual][jugador]
+        apostadas = st.session_state.apuestas[ronda_actual][jugador]
         conseguidas = manos_conseguidas[jugador]
+        
         if apostadas == conseguidas:
             puntos = 10 + (5 * apostadas)
+            st.session_state.aciertos[jugador] += 1  # Aumentar aciertos
+            st.session_state.manos_acertadas[jugador] += apostadas  # Sumar las manos acertadas
         else:
             diferencia = abs(apostadas - conseguidas)
             puntos = -5 * diferencia
+            st.session_state.rondas_perdidas[jugador] += 1  # Aumentar rondas perdidas
+            st.session_state.manos_falladas[jugador] += diferencia  # Aumentar manos falladas
         
         # Sumar los puntos obtenidos a las puntuaciones acumuladas
         st.session_state.acumuladas[jugador] += puntos
-        st.session_state.puntuaciones[st.session_state.ronda_actual][jugador] = st.session_state.acumuladas[jugador]
+        st.session_state.puntuaciones[ronda_actual][jugador] = st.session_state.acumuladas[jugador]
     
     st.session_state.ronda_actual += 1
+
+# Función para aplicar el estilo a la tabla (texto rojo)
+def highlight_differences(val):
+    try:
+        apostadas, conseguidas, _ = map(int, val.split(" / "))
+        if apostadas != conseguidas:
+            return "color: red"
+    except:
+        pass
+    return ""
 
 # Función para actualizar y mostrar la tabla de puntuaciones
 def actualizar_tabla(num_rondas, nombres_rondas):
@@ -71,21 +100,23 @@ def actualizar_tabla(num_rondas, nombres_rondas):
     else:
         st.error("Error: El número de rondas no coincide con los nombres de las rondas.")
     
-    # Mostrar la tabla utilizando st.dataframe con configuración de columna
+    # Aplicar estilo a la tabla para resaltar diferencias
+    styled_df = df_puntuaciones.style.applymap(highlight_differences)
+
+    # Mostrar la tabla utilizando st.dataframe con configuración de columna y estilo
     st.write("### Tabla de Puntuaciones Acumuladas por Ronda")
-    st.dataframe(
-        df_puntuaciones,
-        column_config={
-            df_puntuaciones.index.name: st.column_config.Column(
-                "Rondas", width="small"  # Ajustar la anchura de la columna de las rondas
-            )
-        },
-        hide_index=False,  # Mostrar el índice que tiene los nombres de las rondas
-    )
+    st.dataframe(styled_df)
 
     # Mostrar la puntuación total final
     st.write("### Puntuaciones Totales Finales")
-    st.dataframe(pd.DataFrame([st.session_state.acumuladas], columns=jugadores))
+    df_totales = pd.DataFrame({
+        "Puntos Totales": st.session_state.acumuladas,
+        "Rondas Acertadas": st.session_state.aciertos,
+        "Manos Acertadas": st.session_state.manos_acertadas,
+        "Rondas Perdidas": st.session_state.rondas_perdidas,
+        "Manos Falladas": st.session_state.manos_falladas,
+    }, index=jugadores)
+    st.dataframe(df_totales)
 
 # Función para mostrar gráfico de la evolución de las puntuaciones
 def mostrar_grafico_evolucion(num_rondas, nombres_rondas):
@@ -135,6 +166,14 @@ if 'puntuaciones' not in st.session_state:
     st.session_state.puntuaciones = [[0 for _ in range(num_jugadores)] for _ in range(num_rondas)]  # Inicializar según el número de rondas calculadas
 if 'acumuladas' not in st.session_state:
     st.session_state.acumuladas = [0 for _ in range(num_jugadores)]  # Puntuaciones acumuladas
+if 'aciertos' not in st.session_state:
+    st.session_state.aciertos = [0 for _ in range(num_jugadores)]  # Inicializar contador de aciertos
+if 'manos_acertadas' not in st.session_state:
+    st.session_state.manos_acertadas = [0 for _ in range(num_jugadores)]  # Inicializar contador de manos acertadas
+if 'rondas_perdidas' not in st.session_state:
+    st.session_state.rondas_perdidas = [0 for _ in range(num_jugadores)]  # Inicializar contador de rondas perdidas
+if 'manos_falladas' not in st.session_state:
+    st.session_state.manos_falladas = [0 for _ in range(num_jugadores)]  # Inicializar contador de manos falladas
 if 'apuestas' not in st.session_state:
     st.session_state.apuestas = [[0 for _ in range(num_jugadores)] for _ in range(num_rondas)]  # Apuestas por ronda
 if 'conseguidas' not in st.session_state:
@@ -170,8 +209,12 @@ if st.session_state.ronda_actual < num_rondas:  # Limitar a las rondas calculada
             manos_conseguidas.append(manos)
             st.session_state.conseguidas[st.session_state.ronda_actual][jugador] = manos
 
+    # Crear un contenedor para mostrar las advertencias
+    warning_container = st.container()
+    
     # Botón para pasar de ronda y actualizar la tabla
-    st.button(label="Guardar y pasar a la siguiente ronda", on_click=pasar_ronda)
+    st.button(label="Guardar y pasar a la siguiente ronda", on_click=pasar_ronda, args=(warning_container,))
+    
     actualizar_tabla(num_rondas, nombres_rondas)
 else:
     st.write("Todas las rondas han sido completadas.")
