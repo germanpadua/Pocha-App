@@ -1,6 +1,41 @@
 import streamlit as st
 import pandas as pd
 import pickle
+import plotly.graph_objects as go
+
+# Función para calcular el número de rondas
+def calcular_rondas(num_cartas, num_jugadores):
+    rondas_por_jugador = num_cartas // num_jugadores
+    st.write(f"Rondas por jugador: {rondas_por_jugador}")
+    rondas_totales = 2 * (rondas_por_jugador - 1)  # Sumamos +1 para la ronda con el máximo número de cartas
+    rondas_totales += 2 * num_jugadores
+    return rondas_totales, rondas_por_jugador
+
+# Función para generar los nombres de las rondas
+def generar_nombres_rondas(num_jugadores, rondas_por_jugador):
+    nombres_rondas = []
+    contador_rondas = 1
+    
+    # Fase ascendente
+    for i in range(1, rondas_por_jugador): 
+        nombres_rondas.append(f"{contador_rondas}. Ronda con {i} cartas")
+        contador_rondas += 1
+        
+    # Fase con el número máximo de cartas
+    for i in range(num_jugadores):
+        nombres_rondas.append(f"{contador_rondas}. Ronda con {rondas_por_jugador} cartas")
+        contador_rondas += 1
+    
+    # Fase descendente
+    for i in range(rondas_por_jugador - 1, 0, -1):
+        nombres_rondas.append(f"{contador_rondas}. Ronda con {i} cartas")
+        contador_rondas += 1
+    
+    for i in range(num_jugadores):
+        nombres_rondas.append(f"{contador_rondas}. Ronda con {rondas_por_jugador} cartas")
+        contador_rondas += 1
+    
+    return nombres_rondas
 
 # Función para pasar de ronda y actualizar puntuaciones
 def pasar_ronda(): 
@@ -20,17 +55,21 @@ def pasar_ronda():
     st.session_state.ronda_actual += 1
 
 # Función para actualizar y mostrar la tabla de puntuaciones
-def actualizar_tabla():
+def actualizar_tabla(num_rondas, nombres_rondas):
     # Crear DataFrame con las puntuaciones combinadas
     df_puntuaciones = pd.DataFrame()
 
     for jugador in range(num_jugadores):
-        combinadas = [f"{st.session_state.apuestas[ronda][jugador]} / {st.session_state.conseguidas[ronda][jugador]} / {st.session_state.puntuaciones[ronda][jugador]}" if ronda < st.session_state.ronda_actual else "- / - / -" for ronda in range(10)]
+        combinadas = [f"{st.session_state.apuestas[ronda][jugador]} / {st.session_state.conseguidas[ronda][jugador]} / {st.session_state.puntuaciones[ronda][jugador]}" if ronda < st.session_state.ronda_actual else "- / - / -" for ronda in range(num_rondas)]
         
         # Añadir la columna combinada al DataFrame
         df_puntuaciones[f"{jugadores[jugador]} Ap / Co / Pts"] = combinadas
     
-    df_puntuaciones.index = [f"Ronda {i+1}" for i in range(10)]  # Añadir el índice de ronda
+    # Verificación para asegurarse de que las longitudes coincidan
+    if len(nombres_rondas) == len(df_puntuaciones):
+        df_puntuaciones.index = nombres_rondas  # Usar nombres personalizados de las rondas
+    else:
+        st.error("Error: El número de rondas no coincide con los nombres de las rondas.")
     
     st.write("### Tabla de Puntuaciones Acumuladas por Ronda")
     st.dataframe(df_puntuaciones)
@@ -38,6 +77,27 @@ def actualizar_tabla():
     # Mostrar la puntuación total final
     st.write("### Puntuaciones Totales Finales")
     st.dataframe(pd.DataFrame([st.session_state.acumuladas], columns=jugadores))
+
+# Función para mostrar gráfico de la evolución de las puntuaciones
+def mostrar_grafico_evolucion(num_rondas, nombres_rondas):
+    fig = go.Figure()
+    rondas = ["Inicio"] + nombres_rondas  # Incluir "Inicio" en lugar de "Ronda 0"
+    
+    for jugador in range(num_jugadores):
+        puntuaciones = [0]  # Empezar con 0 en la "Inicio"
+        puntuaciones += [st.session_state.puntuaciones[ronda][jugador] for ronda in range(num_rondas)]
+        fig.add_trace(go.Scatter(x=rondas, y=puntuaciones, mode='lines+markers', name=f"{jugadores[jugador]}"))
+
+    fig.update_layout(
+        title="Evolución de las Puntuaciones",
+        xaxis_title="Ronda",
+        yaxis_title="Puntuación",
+        xaxis=dict(tickmode='linear'),
+        yaxis=dict(tickformat=".0f"),
+        height=400
+    )
+    
+    st.plotly_chart(fig)
 
 # Título de la aplicación
 st.title("Puntuaciones de la Pocha")
@@ -50,20 +110,31 @@ jugadores = []
 for i in range(num_jugadores):
     jugadores.append(st.text_input(f"Nombre del jugador {i+1}", value=f"Jugador {i+1}"))
 
+num_cartas = st.number_input("Número de cartas", min_value=36, max_value=50, value=48)
+
+# Calcular el número de rondas basado en las reglas proporcionadas
+num_rondas, rondas_por_jugador = calcular_rondas(num_cartas, num_jugadores)
+
+st.write(f"Se jugarán {num_rondas} rondas en total.")
+
+nombres_rondas = generar_nombres_rondas(num_jugadores, rondas_por_jugador)
+
+st.write(nombres_rondas)
+
 # Inicializar el estado de la aplicación
 if 'ronda_actual' not in st.session_state:
     st.session_state.ronda_actual = 0  # Comienza en la ronda 0
 if 'puntuaciones' not in st.session_state:
-    st.session_state.puntuaciones = [[0 for _ in range(num_jugadores)] for _ in range(10)]  # 10 rondas por defecto
+    st.session_state.puntuaciones = [[0 for _ in range(num_jugadores)] for _ in range(num_rondas)]  # Inicializar según el número de rondas calculadas
 if 'acumuladas' not in st.session_state:
     st.session_state.acumuladas = [0 for _ in range(num_jugadores)]  # Puntuaciones acumuladas
 if 'apuestas' not in st.session_state:
-    st.session_state.apuestas = [[0 for _ in range(num_jugadores)] for _ in range(10)]  # Apuestas por ronda
+    st.session_state.apuestas = [[0 for _ in range(num_jugadores)] for _ in range(num_rondas)]  # Apuestas por ronda
 if 'conseguidas' not in st.session_state:
-    st.session_state.conseguidas = [[0 for _ in range(num_jugadores)] for _ in range(10)]  # Manos conseguidas por ronda
+    st.session_state.conseguidas = [[0 for _ in range(num_jugadores)] for _ in range(num_rondas)]  # Manos conseguidas por ronda
 
-if st.session_state.ronda_actual < 10:  # Limitar a 10 rondas
-    st.header(f"Ronda {st.session_state.ronda_actual + 1}")
+if st.session_state.ronda_actual < num_rondas:  # Limitar a las rondas calculadas
+    st.header(f"{nombres_rondas[st.session_state.ronda_actual]}")
     # Crear columnas para "Apuestas de manos" y "Manos conseguidas"
     col1, col2 = st.columns(2)
     
@@ -94,11 +165,11 @@ if st.session_state.ronda_actual < 10:  # Limitar a 10 rondas
 
     # Botón para pasar de ronda y actualizar la tabla
     st.button(label="Guardar y pasar a la siguiente ronda", on_click=pasar_ronda)
+    actualizar_tabla(num_rondas, nombres_rondas)
 else:
     st.write("Todas las rondas han sido completadas.")
-
-# Mostrar la tabla de puntuaciones solo al final
-actualizar_tabla()
+    actualizar_tabla(num_rondas, nombres_rondas)
+    mostrar_grafico_evolucion(num_rondas, nombres_rondas)
 
 # Guardar puntuaciones
 if st.button("Guardar puntuaciones"):
