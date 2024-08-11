@@ -143,7 +143,7 @@ def mostrar_grafico_evolucion(num_rondas, nombres_rondas):
 st.title("Puntuaciones de la Pocha")
 
 # Número de jugadores
-num_jugadores = st.number_input("Número de jugadores", min_value=2, max_value=10, value=4)
+num_jugadores = st.number_input("Número de jugadores", min_value=2, max_value=10, value=5)
 
 # Nombres de los jugadores
 jugadores = []
@@ -179,6 +179,7 @@ if 'apuestas' not in st.session_state:
 if 'conseguidas' not in st.session_state:
     st.session_state.conseguidas = [[0 for _ in range(num_jugadores)] for _ in range(num_rondas)]  # Manos conseguidas por ronda
 
+# Verificar que la ronda actual está dentro del rango permitido antes de acceder a los elementos de las listas
 if st.session_state.ronda_actual < num_rondas:  # Limitar a las rondas calculadas
     st.header(f"{nombres_rondas[st.session_state.ronda_actual]}")
     # Crear columnas para "Apuestas de manos" y "Manos conseguidas"
