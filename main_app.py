@@ -35,6 +35,18 @@ def generar_nombres_rondas(num_jugadores, rondas_por_jugador):
     
     return nombres_rondas
 
+# Función para inicializar todas las variables del juego
+def iniciar_partida():
+    st.session_state.ronda_actual = 0
+    st.session_state.puntuaciones = [[0 for _ in range(num_jugadores)] for _ in range(num_rondas)]
+    st.session_state.acumuladas = [0 for _ in range(num_jugadores)]
+    st.session_state.aciertos = [0 for _ in range(num_jugadores)]
+    st.session_state.manos_acertadas = [0 for _ in range(num_jugadores)]
+    st.session_state.rondas_perdidas = [0 for _ in range(num_jugadores)]
+    st.session_state.manos_falladas = [0 for _ in range(num_jugadores)]
+    st.session_state.apuestas = [[0 for _ in range(num_jugadores)] for _ in range(num_rondas)]
+    st.session_state.conseguidas = [[0 for _ in range(num_jugadores)] for _ in range(num_rondas)]
+
 # Función para pasar de ronda y actualizar puntuaciones
 def pasar_ronda(warning_container):
     ronda_actual = st.session_state.ronda_actual
@@ -159,68 +171,53 @@ st.write(f"Se jugarán {num_rondas} rondas en total.")
 
 nombres_rondas = generar_nombres_rondas(num_jugadores, rondas_por_jugador)
 
-# Inicializar el estado de la aplicación
-if 'ronda_actual' not in st.session_state:
-    st.session_state.ronda_actual = 0  # Comienza en la ronda 0
-if 'puntuaciones' not in st.session_state:
-    st.session_state.puntuaciones = [[0 for _ in range(num_jugadores)] for _ in range(num_rondas)]  # Inicializar según el número de rondas calculadas
-if 'acumuladas' not in st.session_state:
-    st.session_state.acumuladas = [0 for _ in range(num_jugadores)]  # Puntuaciones acumuladas
-if 'aciertos' not in st.session_state:
-    st.session_state.aciertos = [0 for _ in range(num_jugadores)]  # Inicializar contador de aciertos
-if 'manos_acertadas' not in st.session_state:
-    st.session_state.manos_acertadas = [0 for _ in range(num_jugadores)]  # Inicializar contador de manos acertadas
-if 'rondas_perdidas' not in st.session_state:
-    st.session_state.rondas_perdidas = [0 for _ in range(num_jugadores)]  # Inicializar contador de rondas perdidas
-if 'manos_falladas' not in st.session_state:
-    st.session_state.manos_falladas = [0 for _ in range(num_jugadores)]  # Inicializar contador de manos falladas
-if 'apuestas' not in st.session_state:
-    st.session_state.apuestas = [[0 for _ in range(num_jugadores)] for _ in range(num_rondas)]  # Apuestas por ronda
-if 'conseguidas' not in st.session_state:
-    st.session_state.conseguidas = [[0 for _ in range(num_jugadores)] for _ in range(num_rondas)]  # Manos conseguidas por ronda
+# Botón para iniciar la partida
+if st.button("Iniciar Partida"):
+    iniciar_partida()
 
-# Verificar que la ronda actual está dentro del rango permitido antes de acceder a los elementos de las listas
-if st.session_state.ronda_actual < num_rondas:  # Limitar a las rondas calculadas
-    st.header(f"{nombres_rondas[st.session_state.ronda_actual]}")
-    # Crear columnas para "Apuestas de manos" y "Manos conseguidas"
-    col1, col2 = st.columns(2)
-    
-    # Solicitar apuestas de manos
-    with col1:
-        st.write("### Apuestas de manos")
+# Verificar si la partida ha sido iniciada
+if 'ronda_actual' in st.session_state:
+    if st.session_state.ronda_actual < num_rondas:  # Limitar a las rondas calculadas
+        st.header(f"{nombres_rondas[st.session_state.ronda_actual]}")
+        # Crear columnas para "Apuestas de manos" y "Manos conseguidas"
+        col1, col2 = st.columns(2)
         
-    with col2:
-        st.write("### Manos conseguidas")
-        
-    manos_conseguidas = []
-    for jugador in range(num_jugadores):
+        # Solicitar apuestas de manos
         with col1:
-            st.session_state.apuestas[st.session_state.ronda_actual][jugador] = st.number_input(
-                f"Manos apostadas por {jugadores[jugador]}",
-                key=f"apuesta_ronda{st.session_state.ronda_actual}_jugador{jugador}",
-                min_value=0
-            )
-        
+            st.write("### Apuestas de manos")
+            
         with col2:
-            manos = st.number_input(
-                f"Manos conseguidas por {jugadores[jugador]}",
-                key=f"conseguidas_ronda{st.session_state.ronda_actual}_jugador{jugador}",
-                min_value=0
-            )
-            manos_conseguidas.append(manos)
-            st.session_state.conseguidas[st.session_state.ronda_actual][jugador] = manos
+            st.write("### Manos conseguidas")
+            
+        manos_conseguidas = []
+        for jugador in range(num_jugadores):
+            with col1:
+                st.session_state.apuestas[st.session_state.ronda_actual][jugador] = st.number_input(
+                    f"Manos apostadas por {jugadores[jugador]}",
+                    key=f"apuesta_ronda{st.session_state.ronda_actual}_jugador{jugador}",
+                    min_value=0
+                )
+            
+            with col2:
+                manos = st.number_input(
+                    f"Manos conseguidas por {jugadores[jugador]}",
+                    key=f"conseguidas_ronda{st.session_state.ronda_actual}_jugador{jugador}",
+                    min_value=0
+                )
+                manos_conseguidas.append(manos)
+                st.session_state.conseguidas[st.session_state.ronda_actual][jugador] = manos
 
-    # Crear un contenedor para mostrar las advertencias
-    warning_container = st.container()
-    
-    # Botón para pasar de ronda y actualizar la tabla
-    st.button(label="Guardar y pasar a la siguiente ronda", on_click=pasar_ronda, args=(warning_container,))
-    
-    actualizar_tabla(num_rondas, nombres_rondas)
-else:
-    st.write("Todas las rondas han sido completadas.")
-    actualizar_tabla(num_rondas, nombres_rondas)
-    mostrar_grafico_evolucion(num_rondas, nombres_rondas)
+        # Crear un contenedor para mostrar las advertencias
+        warning_container = st.container()
+        
+        # Botón para pasar de ronda y actualizar la tabla
+        st.button(label="Guardar y pasar a la siguiente ronda", on_click=pasar_ronda, args=(warning_container,))
+        
+        actualizar_tabla(num_rondas, nombres_rondas)
+    else:
+        st.write("Todas las rondas han sido completadas.")
+        actualizar_tabla(num_rondas, nombres_rondas)
+        mostrar_grafico_evolucion(num_rondas, nombres_rondas)
 
 # Guardar puntuaciones
 if st.button("Guardar puntuaciones"):
